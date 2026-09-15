@@ -12,12 +12,14 @@ RUN apt-get update \
  && curl -fsSL https://linux.dell.com/repo/pgp_pubkeys/0x1285491434D8786F.asc | gpg --dearmor -o /usr/share/keyrings/dell.gpg \
  && echo "deb [signed-by=/usr/share/keyrings/dell.gpg] https://linux.dell.com/repo/community/openmanage/${OM_VERSION}/${OM_DIST} ${OM_DIST} main" > /etc/apt/sources.list.d/dell.list \
  && apt-get update \
- # srvadmin-hapi's postinst enables a kernel-driver service (instsvcdrv) via
- # systemctl, which does not exist in a container and fails the install. The
- # racadm binary itself needs none of that: if configuration fails, neuter the
- # postinst and finish configuring.
+ # The Dell postinst scripts enable a kernel-driver service with systemctl,
+ # which does not exist in a container. dpkg runs maintainer scripts with a
+ # fixed PATH, so the no-op shim must live in /usr/bin. Belt and braces: if
+ # configuration still fails, neuter the scripts and finish configuring.
+ && printf '#!/bin/sh\nexit 0\n' > /usr/bin/systemctl && chmod +x /usr/bin/systemctl \
  && (apt-get install -y --no-install-recommends srvadmin-idracadm7 \
-     || (printf '#!/bin/sh\nexit 0\n' > /var/lib/dpkg/info/srvadmin-hapi.postinst && dpkg --configure -a)) \
+     || (for pkg in srvadmin-hapi srvadmin-idracadm7; do printf '#!/bin/sh\nexit 0\n' > /var/lib/dpkg/info/$pkg.postinst; done && dpkg --configure -a)) \
+ && rm /usr/bin/systemctl \
  && test -x /opt/dell/srvadmin/bin/idracadm7 \
  && ln -s /opt/dell/srvadmin/bin/idracadm7 /usr/local/bin/racadm \
  && apt-get purge -y curl gnupg && apt-get autoremove -y \
