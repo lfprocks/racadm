@@ -8,7 +8,8 @@ ARG OM_VERSION=950
 ARG OM_DIST=focal
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl gnupg openssl \
+ # libargtable2-0: runtime dependency of idracadm7 that Dell's Debian package does not declare.
+ && apt-get install -y --no-install-recommends ca-certificates curl gnupg openssl libargtable2-0 \
  && curl -fsSL https://linux.dell.com/repo/pgp_pubkeys/0x1285491434D8786F.asc | gpg --dearmor -o /usr/share/keyrings/dell.gpg \
  && echo "deb [signed-by=/usr/share/keyrings/dell.gpg] https://linux.dell.com/repo/community/openmanage/${OM_VERSION}/${OM_DIST} ${OM_DIST} main" > /etc/apt/sources.list.d/dell.list \
  && apt-get update \
