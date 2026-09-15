@@ -1,0 +1,53 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 6 * * 1" # weekly: pick up Dell package updates
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - tag: "9.5.0"
+            base: ubuntu:20.04
+            om_version: "950"
+            om_dist: focal
+            latest: true
+          - tag: "11.0.1"
+            base: ubuntu:22.04
+            om_version: "11010"
+            om_dist: jammy
+            latest: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            BASE=${{ matrix.base }}
+            OM_VERSION=${{ matrix.om_version }}
+            OM_DIST=${{ matrix.om_dist }}
+          tags: |
+            ghcr.io/lfprocks/racadm:${{ matrix.tag }}
+            ghcr.io/lfprocks/racadm:${{ matrix.tag }}-${{ github.sha }}
+            ${{ matrix.latest && 'ghcr.io/lfprocks/racadm:latest' || '' }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/lfprocks/racadm
+            org.opencontainers.image.description=Dell remote RACADM (OpenManage ${{ matrix.tag }})
