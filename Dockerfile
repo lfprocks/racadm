@@ -12,7 +12,11 @@ RUN apt-get update \
  && curl -fsSL https://linux.dell.com/repo/pgp_pubkeys/0x1285491434D8786F.asc | gpg --dearmor -o /usr/share/keyrings/dell.gpg \
  && echo "deb [signed-by=/usr/share/keyrings/dell.gpg] https://linux.dell.com/repo/community/openmanage/${OM_VERSION}/${OM_DIST} ${OM_DIST} main" > /etc/apt/sources.list.d/dell.list \
  && apt-get update \
+ # srvadmin-hapi's postinst calls systemctl to enable a kernel-driver service,
+ # which is meaningless in a container; a no-op shim lets the package configure.
+ && printf '#!/bin/sh\nexit 0\n' > /usr/local/sbin/systemctl && chmod +x /usr/local/sbin/systemctl \
  && apt-get install -y --no-install-recommends srvadmin-idracadm7 \
+ && rm /usr/local/sbin/systemctl \
  && ln -s /opt/dell/srvadmin/bin/idracadm7 /usr/local/bin/racadm \
  && apt-get purge -y curl gnupg && apt-get autoremove -y \
  && rm -rf /var/lib/apt/lists/*
