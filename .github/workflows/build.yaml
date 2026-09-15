@@ -15,6 +15,7 @@ jobs:
   image:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - tag: "9.5.0"
