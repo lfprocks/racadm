@@ -21,6 +21,12 @@ RUN apt-get update \
  && (apt-get install -y --no-install-recommends srvadmin-idracadm7 \
      || (for pkg in srvadmin-hapi srvadmin-idracadm7; do printf '#!/bin/sh\nexit 0\n' > /var/lib/dpkg/info/$pkg.postinst; done && dpkg --configure -a)) \
  && rm /usr/bin/systemctl \
+ # racadm dlopens the unversioned libssl.so/libcrypto.so names (RAC1170 if
+ # absent); point them at the distro's current OpenSSL.
+ && cd /usr/lib/x86_64-linux-gnu \
+ && ln -s "$(ls libssl.so.* | sort -V | tail -1)" libssl.so \
+ && ln -s "$(ls libcrypto.so.* | sort -V | tail -1)" libcrypto.so \
+ && cd / \
  && test -x /opt/dell/srvadmin/bin/idracadm7 \
  && ln -s /opt/dell/srvadmin/bin/idracadm7 /usr/local/bin/racadm \
  && apt-get purge -y curl gnupg && apt-get autoremove -y \
